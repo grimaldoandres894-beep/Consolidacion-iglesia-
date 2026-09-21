@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de visita · Iglesia La Roca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="consolidacion.css">
+<style>
+  .registro-wrap{
+    min-height:calc(100vh - 82px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 16px;
+  }
+  .registro-wrap .panel{
+    width:100%;
+    max-width:480px;
+  }
+  .registro-foot{
+    text-align:center;
+    padding:0 20px 30px;
+    font-size:0.82rem;
+    color:var(--mist);
+  }
+  .registro-foot a{color:var(--blue); font-weight:500;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <img src="logo-la-roca.png" alt="Logo Iglesia Cristiana La Roca" class="brand-logo">
+      <div class="brand-text">Bienvenido<span>Iglesia Cristiana La Roca</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="registro-wrap">
+  <section class="panel form-panel" aria-labelledby="form-title">
+    <h2 id="form-title">Nos alegra que nos visitaras</h2>
+    <p class="panel-sub">Cuéntanos un poco de ti para poder acompañarte mejor.</p>
+
+    <form id="attendeeForm" novalidate>
+      <div class="field">
+        <label for="nombre">Nombre completo</label>
+        <input type="text" id="nombre" name="nombre" placeholder="Ej. María Fernández" required>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="telefono">Teléfono <span class="opt">(opcional)</span></label>
+          <input type="tel" id="telefono" name="telefono" placeholder="300 000 0000">
+        </div>
+        <div class="field">
+          <label for="cumple">Cumpleaños <span class="opt">(opcional)</span></label>
+          <input type="date" id="cumple" name="cumple">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="direccion">Dirección de residencia <span class="opt">(opcional)</span></label>
+        <input type="text" id="direccion" name="direccion" placeholder="Barrio, calle, número">
+      </div>
+
+      <div class="field">
+        <label for="servicio">Servicio al que asististe</label>
+        <select id="servicio" name="servicio">
+          <option value="Domingo 9:00 a.m.">Domingo 9:00 a.m.</option>
+          <option value="Domingo 11:00 a.m.">Domingo 11:00 a.m.</option>
+          <option value="Miércoles · Estudio bíblico">Miércoles · Estudio bíblico</option>
+          <option value="Sábado · Jóvenes">Sábado · Jóvenes</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="conocio">¿Cómo nos conociste?</label>
+        <select id="conocio" name="conocio">
+          <option value="Invitación de un amigo o familiar">Invitación de un amigo o familiar</option>
+          <option value="Redes sociales">Redes sociales</option>
+          <option value="Pasó y vio la iglesia">Pasó y vio la iglesia</option>
+          <option value="Búsqueda en internet">Búsqueda en internet</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="peticion">Petición de oración <span class="opt">(opcional)</span></label>
+        <textarea id="peticion" name="peticion" rows="3" placeholder="Cuéntanos en qué podemos orar por ti"></textarea>
+      </div>
+
+      <button type="submit" class="btn-primary btn-full">Enviar</button>
+      <p class="form-msg" id="formMsg" role="status"></p>
+    </form>
+  </section>
+</div>
+
+<p class="registro-foot">¿Eres parte del equipo de consolidación? <a href="/login.html">Inicia sesión aquí</a></p>
+
+<script>
+  const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const now = new Date();
+  const mesActual = `${MESES[now.getMonth()]} ${now.getFullYear()}`;
+
+  document.getElementById('attendeeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nombre = document.getElementById('nombre').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
+    const cumple = document.getElementById('cumple').value;
+    const direccion = document.getElementById('direccion').value.trim();
+    const servicio = document.getElementById('servicio').value;
+    const conocio = document.getElementById('conocio').value;
+    const peticion = document.getElementById('peticion').value.trim();
+    const msg = document.getElementById('formMsg');
+    const form = document.getElementById('attendeeForm');
+
+    if (!nombre) {
+      msg.textContent = 'Escribe tu nombre para continuar.';
+      msg.className = 'form-msg error';
+      return;
+    }
+
+    const payload = {
+      nombre, telefono, servicio,
+      mes: mesActual,
+      fechaNacimiento: cumple || null,
+      direccion,
+      comoConocio: conocio,
+      peticionOracion: peticion,
+      contactado: false
+    };
+
+    try {
+      const response = await fetch('/api/asistentes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error('Respuesta no válida');
+
+      form.reset();
+      form.style.display = 'none';
+      msg.textContent = `¡Gracias, ${nombre}! Alguien de nuestro equipo se pondrá en contacto contigo pronto.`;
+      msg.className = 'form-msg success';
+    } catch (err) {
+      msg.textContent = 'No se pudo enviar. Intenta de nuevo en un momento.';
+      msg.className = 'form-msg error';
+      console.error('Error registrando visita:', err);
+    }
+  });
+</script>
+
+</body>
+</html>

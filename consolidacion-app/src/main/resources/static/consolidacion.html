@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consolidación · Iglesia La Roca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="consolidacion.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <img src="logo-la-roca.png" alt="Logo Iglesia Cristiana La Roca" class="brand-logo">
+      <div class="brand-text">Consolidación<span>Iglesia Cristiana La Roca</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-note" id="syncNote">Cargando registros…</div>
+      <form action="/logout" method="post">
+        <button type="submit" class="logout-btn">Salir</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<main class="wrap main-grid">
+
+  <!-- FORMULARIO -->
+  <section class="panel form-panel" aria-labelledby="form-title">
+    <h2 id="form-title">Registrar asistente</h2>
+    <p class="panel-sub">Añade a la persona al mes correspondiente para darle seguimiento.</p>
+
+    <form id="attendeeForm" novalidate>
+      <div class="field">
+        <label for="nombre">Nombre completo</label>
+        <input type="text" id="nombre" name="nombre" placeholder="Ej. María Fernández" required>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="telefono">Teléfono <span class="opt">(opcional)</span></label>
+          <input type="tel" id="telefono" name="telefono" placeholder="300 000 0000">
+        </div>
+        <div class="field">
+          <label for="cumple">Fecha de cumpleaños <span class="opt">(opcional)</span></label>
+          <input type="date" id="cumple" name="cumple">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="direccion">Dirección de residencia <span class="opt">(opcional)</span></label>
+        <input type="text" id="direccion" name="direccion" placeholder="Barrio, calle, número">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="servicio">Servicio al que asistió</label>
+          <select id="servicio" name="servicio">
+            <option value="Domingo 9:00 a.m.">Domingo 9:00 a.m.</option>
+            <option value="Domingo 11:00 a.m.">Domingo 11:00 a.m.</option>
+            <option value="Miércoles · Estudio bíblico">Miércoles · Estudio bíblico</option>
+            <option value="Sábado · Jóvenes">Sábado · Jóvenes</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="mes">Mes</label>
+          <select id="mes" name="mes"></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="conocio">¿Cómo nos conoció?</label>
+        <select id="conocio" name="conocio">
+          <option value="Invitación de un amigo o familiar">Invitación de un amigo o familiar</option>
+          <option value="Redes sociales">Redes sociales</option>
+          <option value="Pasó y vio la iglesia">Pasó y vio la iglesia</option>
+          <option value="Búsqueda en internet">Búsqueda en internet</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="peticion">Petición de oración <span class="opt">(opcional)</span></label>
+        <textarea id="peticion" name="peticion" rows="3" placeholder="Cuéntanos en qué podemos orar por ti"></textarea>
+      </div>
+
+      <button type="submit" class="btn-primary btn-full">Registrar asistente</button>
+      <p class="form-msg" id="formMsg" role="status"></p>
+    </form>
+  </section>
+
+  <!-- LISTADO -->
+  <section class="panel list-panel" aria-labelledby="list-title">
+    <div class="list-head">
+      <div>
+        <h2 id="list-title">Asistentes por mes</h2>
+        <p class="panel-sub">Toca un nombre para ver sus datos completos. Marca el estado cuando hagas el seguimiento.</p>
+      </div>
+      <div class="summary" id="summary"></div>
+    </div>
+
+    <div class="month-tabs" id="monthTabs" role="tablist"></div>
+
+    <div class="table-wrap">
+      <table id="attendeeTable">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Servicio</th>
+            <th>Registrado</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState">
+        Todavía no hay asistentes registrados este mes.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot-note wrap">
+  Los registros se guardan directamente en la base de datos MySQL en cuanto los añades. Todo el equipo que acceda a este panel verá la misma información en tiempo real.
+</footer>
+
+<script>
+  const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const API_URL = '/api/asistentes';
+
+  const now = new Date();
+  const currentMonthLabel = `${MESES[now.getMonth()]} ${now.getFullYear()}`;
+
+  // Rango fijo: Enero 2026 -> Diciembre 2028
+  const RANGE_START_YEAR = 2026;
+  const RANGE_END_YEAR = 2028;
+  const monthOptions = [];
+  for (let year = RANGE_START_YEAR; year <= RANGE_END_YEAR; year++) {
+    for (let m = 0; m < 12; m++) {
+      monthOptions.push(`${MESES[m]} ${year}`);
+    }
+  }
+
+  // Poblar selector de mes, agrupado por año
+  const monthSelect = document.getElementById('mes');
+  for (let year = RANGE_START_YEAR; year <= RANGE_END_YEAR; year++) {
+    const group = document.createElement('optgroup');
+    group.label = String(year);
+    MESES.forEach(m => {
+      const label = `${m} ${year}`;
+      const opt = document.createElement('option');
+      opt.value = label;
+      opt.textContent = m;
+      if (label === currentMonthLabel) opt.selected = true;
+      group.appendChild(opt);
+    });
+    monthSelect.appendChild(group);
+  }
+
+  // Estado en memoria, agrupado por mes: { mes: [ {id, nombre, telefono, fechaNacimiento,
+  // direccion, servicio, mes, comoConocio, peticionOracion, contactado, fechaRegistro} ] }
+  // Se llena a partir de lo que devuelve la API — la fuente de verdad es MySQL, no el navegador.
+  let data = {};
+  let activeMonth = monthOptions.includes(currentMonthLabel) ? currentMonthLabel : monthOptions[0];
+  let openRow = null;
+
+  function ensureMonth(mes) {
+    if (!data[mes]) data[mes] = [];
+  }
+
+  function agruparPorMes(listaPlano) {
+    const agrupado = {};
+    listaPlano.forEach(a => {
+      if (!agrupado[a.mes]) agrupado[a.mes] = [];
+      agrupado[a.mes].push(a);
+    });
+    return agrupado;
+  }
+
+  async function loadData() {
+    const syncNote = document.getElementById('syncNote');
+    try {
+      const response = await fetch(API_URL);
+      if (!response.ok) throw new Error('Respuesta no válida del servidor');
+      const listaPlano = await response.json();
+      data = agruparPorMes(listaPlano);
+      syncNote.textContent = 'Conectado a la base de datos';
+    } catch (err) {
+      data = {};
+      syncNote.textContent = 'No se pudo conectar con el servidor';
+      console.error('Error cargando datos:', err);
+    }
+    renderAll();
+  }
+
+  async function crearAsistente(payload) {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error('No se pudo guardar el registro');
+    return response.json();
+  }
+
+  async function actualizarContactado(id, contactado) {
+    const response = await fetch(`${API_URL}/${id}/contactado`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactado })
+    });
+    if (!response.ok) throw new Error('No se pudo actualizar el estado');
+    return response.json();
+  }
+
+  function renderTabs() {
+    const tabsEl = document.getElementById('monthTabs');
+    tabsEl.innerHTML = '';
+    const monthsWithData = Object.keys(data).filter(m => data[m].length > 0);
+    const months = monthsWithData.length ? monthsWithData : [currentMonthLabel];
+    months.sort((a, b) => monthOptions.indexOf(a) - monthOptions.indexOf(b));
+    if (!months.includes(activeMonth) && monthsWithData.length) activeMonth = months[0];
+
+    months.forEach(mes => {
+      const btn = document.createElement('button');
+      btn.className = 'tab' + (mes === activeMonth ? ' active' : '');
+      btn.type = 'button';
+      btn.setAttribute('role', 'tab');
+      btn.textContent = mes;
+      btn.addEventListener('click', () => {
+        activeMonth = mes;
+        openRow = null;
+        renderAll();
+      });
+      tabsEl.appendChild(btn);
+    });
+  }
+
+  function renderSummary() {
+    const list = data[activeMonth] || [];
+    const contactados = list.filter(a => a.contactado).length;
+    const pendientes = list.length - contactados;
+    document.getElementById('summary').innerHTML = `
+      <div class="sum-item"><strong>${list.length}</strong><span>Total</span></div>
+      <div class="sum-item sum-pending"><strong>${pendientes}</strong><span>Pendientes</span></div>
+      <div class="sum-item sum-done"><strong>${contactados}</strong><span>Contactados</span></div>
+    `;
+  }
+
+  function formatCumple(value) {
+    if (!value) return null;
+    const [y, m, d] = value.split('-');
+    const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return `${d} de ${meses[parseInt(m,10)-1]}`;
+  }
+
+  function formatFechaRegistro(value) {
+    if (!value) return '—';
+    const fecha = new Date(value);
+    return fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function renderTable() {
+    const list = data[activeMonth] || [];
+    const body = document.getElementById('tableBody');
+    const empty = document.getElementById('emptyState');
+    body.innerHTML = '';
+
+    if (list.length === 0) {
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    list.forEach((a, idx) => {
+      const tr = document.createElement('tr');
+      tr.className = 'row-main';
+      tr.innerHTML = `
+        <td class="chevron-cell"><span class="chevron ${openRow === idx ? 'open' : ''}">›</span></td>
+        <td>${a.nombre}</td>
+        <td>${a.telefono || '—'}</td>
+        <td>${a.servicio}</td>
+        <td>${formatFechaRegistro(a.fechaRegistro)}</td>
+        <td></td>
+      `;
+      const statusCell = tr.lastElementChild;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'status-chip ' + (a.contactado ? 'done' : 'pending');
+      chip.textContent = a.contactado ? 'Contactado' : 'Pendiente';
+      chip.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const nuevoEstado = !a.contactado;
+        try {
+          await actualizarContactado(a.id, nuevoEstado);
+          a.contactado = nuevoEstado;
+        } catch (err) {
+          console.error('Error actualizando estado:', err);
+        }
+        renderAll();
+      });
+      statusCell.appendChild(chip);
+
+      tr.addEventListener('click', () => {
+        openRow = openRow === idx ? null : idx;
+        renderAll();
+      });
+      body.appendChild(tr);
+
+      if (openRow === idx) {
+        const detailTr = document.createElement('tr');
+        detailTr.className = 'row-detail';
+        const cumpleLabel = formatCumple(a.fechaNacimiento);
+        detailTr.innerHTML = `
+          <td colspan="6">
+            <div class="detail-grid">
+              <div><span class="d-label">Cumpleaños</span><span class="d-value">${cumpleLabel || 'No indicado'}</span></div>
+              <div><span class="d-label">Dirección</span><span class="d-value">${a.direccion || 'No indicada'}</span></div>
+              <div><span class="d-label">Cómo nos conoció</span><span class="d-value">${a.comoConocio || 'No indicado'}</span></div>
+              <div class="detail-full"><span class="d-label">Petición de oración</span><span class="d-value">${a.peticionOracion || 'Sin petición registrada'}</span></div>
+            </div>
+          </td>
+        `;
+        body.appendChild(detailTr);
+      }
+    });
+  }
+
+  function renderAll() {
+    renderTabs();
+    renderSummary();
+    renderTable();
+  }
+
+  document.getElementById('attendeeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nombre = document.getElementById('nombre').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
+    const cumple = document.getElementById('cumple').value;
+    const direccion = document.getElementById('direccion').value.trim();
+    const servicio = document.getElementById('servicio').value;
+    const mes = document.getElementById('mes').value;
+    const conocio = document.getElementById('conocio').value;
+    const peticion = document.getElementById('peticion').value.trim();
+    const msg = document.getElementById('formMsg');
+
+    if (!nombre) {
+      msg.textContent = 'Escribe el nombre del asistente.';
+      msg.className = 'form-msg error';
+      return;
+    }
+
+    const payload = {
+      nombre, telefono, servicio, mes,
+      fechaNacimiento: cumple || null,
+      direccion,
+      comoConocio: conocio,
+      peticionOracion: peticion,
+      contactado: false
+    };
+
+    try {
+      const creado = await crearAsistente(payload);
+      ensureMonth(mes);
+      data[mes].push(creado);
+
+      activeMonth = mes;
+      openRow = null;
+      msg.textContent = `${nombre} fue registrado en ${mes}.`;
+      msg.className = 'form-msg success';
+
+      document.getElementById('attendeeForm').reset();
+      monthSelect.value = mes;
+      renderAll();
+    } catch (err) {
+      msg.textContent = 'No se pudo guardar. Revisa la conexión con el servidor.';
+      msg.className = 'form-msg error';
+      console.error('Error registrando asistente:', err);
+    }
+  });
+
+  loadData();
+</script>
+
+</body>
+</html>

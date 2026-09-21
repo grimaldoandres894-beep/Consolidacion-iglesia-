@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iniciar sesión · Consolidación La Roca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="consolidacion.css">
+<style>
+  body{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--navy-ink);
+    padding:20px;
+  }
+  .login-card{
+    width:100%;
+    max-width:380px;
+    background:var(--white);
+    border-radius:var(--radius-lg);
+    padding:36px 32px;
+    text-align:center;
+  }
+  .login-logo{width:76px; height:76px; object-fit:contain; margin:0 auto 12px;}
+  .login-card h1{
+    font-family:'Fraunces', serif;
+    font-size:1.4rem;
+    color:var(--navy-ink);
+    font-weight:600;
+  }
+  .login-card p.sub{
+    color:var(--mist);
+    font-size:0.9rem;
+    margin-top:6px;
+    margin-bottom:26px;
+  }
+  .login-card form{text-align:left;}
+  .login-alert{
+    margin-bottom:18px;
+    padding:11px 14px;
+    border-radius:8px;
+    font-size:0.86rem;
+    text-align:left;
+  }
+  .login-alert.error{background:#FBE9E7; color:#B4453A;}
+  .login-alert.success{background:var(--green-bg); color:var(--green);}
+</style>
+</head>
+<body>
+
+  <div class="login-card">
+    <img src="logo-la-roca.png" alt="Logo Iglesia Cristiana La Roca" class="login-logo">
+    <h1>Panel de consolidación</h1>
+    <p class="sub">Inicia sesión para ver y dar seguimiento a los asistentes.</p>
+
+    <div id="alertBox"></div>
+
+    <form action="/perform_login" method="post">
+      <div class="field">
+        <label for="username">Correo electrónico</label>
+        <input type="email" id="username" name="username" placeholder="tucorreo@iglesialaroca.org" required autofocus>
+      </div>
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn-primary btn-full" style="margin-top:22px;">Entrar</button>
+    </form>
+  </div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const alertBox = document.getElementById('alertBox');
+  if (params.get('error')) {
+    alertBox.innerHTML = '<div class="login-alert error">Correo o contraseña incorrectos.</div>';
+  } else if (params.get('salida')) {
+    alertBox.innerHTML = '<div class="login-alert success">Sesión cerrada correctamente.</div>';
+  }
+</script>
+
+</body>
+</html>
