@@ -1,7 +1,7 @@
 # Etapa 1: Compilación con Maven
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
-COPY . .
+COPY consolidacion-app/ .
 RUN mvn clean package -DskipTests
 
 # Etapa 2: Ejecución de la aplicación Spring Boot
